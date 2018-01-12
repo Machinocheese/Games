@@ -1,4 +1,4 @@
-var htmlCanvas = document.getElementById("canvas"), context = htmlCanvas.getContext('2d'), player, bait;
+var htmlCanvas = document.getElementById("canvas"), context = htmlCanvas.getContext('2d'), player, bait, predator;
 var speed = 50, score = 0;
 
 /**
@@ -18,30 +18,79 @@ function createImage(src, x, y, width, height, angle) {
     return map;
 }
 
-function drawPlayer(){
-    context.save();
-    context.translate(player["x"] + player["width"] / 2, player["y"] + player["height"] / 2);
-    context.rotate(player["angle"] *Math.PI/180);
-    context.drawImage(player["image"], -1 * player["width"] / 2, -player["height"] / 2, player["width"], player["height"]);
-    context.restore();
-}
+function createPoint(objWidth, objHeight){
+    var point = {};
 
-function createBait(){
-    var baitWidth = 50;
-    var baitHeight = 50;
     var x = Math.floor(Math.random() * window.innerWidth);
     var y = Math.floor(Math.random() * window.innerHeight);
 
     if(x < 0) x = 0;
     if(y < 0) y = 0;
-    if(x > window.innerWidth - baitWidth) x = window.innerWidth - baitWidth;
-    if(y > window.innerHeight - baitHeight) y = window.innerHeight - baitHeight;
+    if(x > window.innerWidth - objWidth) x = window.innerWidth - objWidth;
+    if(y > window.innerHeight - objHeight) y = window.innerHeight - objHeight;
+    point["x"] = x;
+    point["y"] = y;
 
-    console.log("Position: " + x + ' ' + y);
-    bait = createImage("aphid.png", x, y, baitWidth, baitHeight, 0);
-    bait["image"].onload = function(){
-        context.drawImage(bait["image"], bait["x"], bait["y"], bait["width"], bait["height"]);
+    return point;
+}
+
+function createPredator(){
+    //predator currently only moves up or down. 
+    //predator first moves in x. then y. then x.
+    //make it only go in one direction.
+    var point = createPoint(predator["width"], predator["height"]);
+    predator["destination"] = point;
+    predator["direction"] = Math.floor(Math.random() * 2);
+    console.log(predator["destination"]);
+}
+
+function updatePredator(){
+    //one if-statement handles the x-direction, the other handles the y-direction
+    if(predator["direction"]){ //handle x-direction
+        if(predator["destination"]["x"] > predator["x"]){
+            predator["x"] += speed;
+            predator["angle"] = 180;
+        }
+        else{
+            predator["x"] -= speed;
+            predator["angle"] = 0;
+        }
+    } else {
+        if(predator["destination"]["y"] > predator["y"]){
+            predator["y"] += speed;
+            predator["angle"] = 270;
+        }
+        else{
+            predator["y"] -= speed;
+            predator["angle"] = 90;
+        }
     }
+
+    drawObject(predator);
+
+    console.log("WHAT?: " + predator["x"] + ' ' + predator["destination"]["x"] + ' ' + Math.abs(predator["x"] - predator["destination"]["x"]) + ' ' + Math.abs(predator["y"] - predator["destination"]["y"]) <= speed);
+    if(Math.abs(predator["x"] - predator["destination"]["x"]) <= speed && Math.abs(predator["y"] - predator["destination"]["y"]) <= speed)
+        createPredator();
+}
+
+function createObject(image, width, height){
+    var object;
+    var point = createPoint(width, height);
+
+    console.log("Position: " + point["x"] + ' ' + point["y"]);
+    object = createImage(image, point["x"], point["y"], width, height, 0);
+    object["image"].onload = function(){
+        context.drawImage(object["image"], object["x"], object["y"], object["width"], object["height"]);
+    }
+    return object;
+}
+
+function drawObject(object){
+    context.save();
+    context.translate(object["x"] + object["width"] / 2, object["y"] + object["height"] / 2);
+    context.rotate(object["angle"] *Math.PI/180);
+    context.drawImage(object["image"], -1 * object["width"] / 2, -object["height"] / 2, object["width"], object["height"]);
+    context.restore();
 }
 
 function drawScore(){
@@ -52,13 +101,13 @@ function drawScore(){
 function drawCanvas(){
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawPlayer();
+    drawObject(player);
     drawScore();
     if(!checkCollision(player, bait))
         context.drawImage(bait["image"], bait["x"], bait["y"], bait["width"], bait["height"]); //draw bait
     else{
         score++;
-        createBait();
+        bait = createObject("aphid.png", 50, 50);
     }
 }
 
@@ -102,15 +151,14 @@ window.onload = function(){
     htmlCanvas.width = window.innerWidth;
     htmlCanvas.height = window.innerHeight;
 
-    player = createImage("bug.png", 100, 100, 100, 100, 0);
-    player["image"].onload = function () {
-        context.drawImage(player["image"], player["x"], player["y"], player["width"], player["height"]);
-    }
-
+    //TO-DO: implement collision check when creating object
+    player = createObject("bug.png", 100, 100);
+    bait = createObject("aphid.png", 50, 50);
+    predator = createObject("predator.jpg", 200, 200);
     drawScore();
-    createBait();
 
-    /** update this so that you can just call drawCanvas() */
+    createPredator();
+    //setInterval(updatePredator, 100);
 }
 
 document.onkeydown = checkKey;
