@@ -35,42 +35,27 @@ function createPoint(objWidth, objHeight){
 }
 
 function createPredator(){
-    //predator currently only moves up or down. 
-    //predator first moves in x. then y. then x.
     //make it only go in one direction.
     var point = createPoint(predator["width"], predator["height"]);
-    predator["destination"] = point;
-    predator["direction"] = Math.floor(Math.random() * 2);
-    console.log(predator["destination"]);
+    predator["offset"] = point["x"] - predator["x"];
 }
 
 function updatePredator(){
     //one if-statement handles the x-direction, the other handles the y-direction
-    if(predator["direction"]){ //handle x-direction
-        if(predator["destination"]["x"] > predator["x"]){
-            predator["x"] += speed;
-            predator["angle"] = 180;
-        }
-        else{
-            predator["x"] -= speed;
-            predator["angle"] = 0;
-        }
-    } else {
-        if(predator["destination"]["y"] > predator["y"]){
-            predator["y"] += speed;
-            predator["angle"] = 270;
-        }
-        else{
-            predator["y"] -= speed;
-            predator["angle"] = 90;
-        }
-    }
-
-    drawObject(predator);
-
-    console.log("WHAT?: " + predator["x"] + ' ' + predator["destination"]["x"] + ' ' + Math.abs(predator["x"] - predator["destination"]["x"]) + ' ' + Math.abs(predator["y"] - predator["destination"]["y"]) <= speed);
-    if(Math.abs(predator["x"] - predator["destination"]["x"]) <= speed && Math.abs(predator["y"] - predator["destination"]["y"]) <= speed)
+    
+    //take one direction from offset closer to 0. subtract that from the abs value. then add what was subtracted
+    //onto the x value. continue until offset reaches 0.
+    if(predator["offset"] < 0){
+        predator["offset"] += speed / 10;
+        predator["x"] -= speed / 10;
+        if(predator["offset"] > 0) predator["offset"] = 0;
+    } else if(predator["offset"] > 0){
+        predator["offset"] -= speed / 10;
+        predator["x"] += speed / 10;
+        if(predator["offset"] < 0) predator["offset"] = 0;
+    } else{
         createPredator();
+    }
 }
 
 function createObject(image, width, height){
@@ -102,13 +87,16 @@ function drawCanvas(){
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     drawObject(player);
+    drawObject(predator);
     drawScore();
+    updatePredator();
     if(!checkCollision(player, bait))
         context.drawImage(bait["image"], bait["x"], bait["y"], bait["width"], bait["height"]); //draw bait
     else{
         score++;
         bait = createObject("aphid.png", 50, 50);
     }
+    if(checkCollision(player, predator)) alert("YOU LOSE!");
 }
 
 function checkCollision(rect1, rect2){
@@ -158,7 +146,7 @@ window.onload = function(){
     drawScore();
 
     createPredator();
-    //setInterval(updatePredator, 100);
+    setInterval(updatePredator, 100);
 }
 
 document.onkeydown = checkKey;
